@@ -10,11 +10,4 @@ AI Output:
 - Track progress using Redis keys import:<task_id>:processed and import:<task_id>:total
 - CRUD operations can be simple REST endpoints
 - Webhooks stored in separate table
-- Suggested folder structure:
-/app
-  /api
-  /models
-  /workers
-  /services
-  /static
-  main.py
+

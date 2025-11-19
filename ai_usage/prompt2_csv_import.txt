@@ -6,15 +6,4 @@ AI Output:
 - Read file line-by-line, accumulate chunks of 5k–10k
 - Use SQLAlchemy bulk_insert_mappings or bulk_update_mappings
 - Use lower(sku) for case-insensitive matching
-- Recommended pseudocode:
-with open(file) as f:
-    reader = csv.DictReader(f)
-    batch = []
-    for row in reader:
-        batch.append(transform(row))
-        if len(batch) == chunk_size:
-            upsert_batch(batch)
-            batch.clear()
-# final flush
-if batch:
-    upsert_batch(batch)
+

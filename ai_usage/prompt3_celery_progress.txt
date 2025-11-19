@@ -2,10 +2,7 @@ Prompt:
 I’m using Celery + Redis. How do I report CSV import progress back to the frontend UI in real time?
 
 AI Output:
-- Use Redis to store progress counters:
-  progress:<task_id>:current
-  progress:<task_id>:total
-  progress:<task_id>:status
+- Use Redis to store progress counters
 - Update progress after each chunk
 - Create a /progress/<task_id> API endpoint that polls Redis
 - Frontend polls every 1–2 seconds
