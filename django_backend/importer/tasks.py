@@ -52,9 +52,9 @@ def import_csv_task(self, file_content, filename, job_id):
         products_to_create = []
         rows_list = list(reader)
         
-        # Get all existing SKUs at once (batch query)
+        # Get all existing SKUs at once (batch query) - convert to lowercase for comparison
         existing_skus = set(
-            Product.objects.values_list('sku', flat=True).lower()
+            sku.lower() for sku in Product.objects.values_list('sku', flat=True)
         )
 
         for row_num, row in enumerate(rows_list, 1):
