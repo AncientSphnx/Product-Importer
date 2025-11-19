@@ -1,0 +1,32 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Delete Webhook - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Delete Webhook</h1>
+    </div>
+
+    <div class="card" style="max-width: 500px;">
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem;">
+            <p style="margin: 0; color: var(--danger);">
+                <strong>⚠️ Warning:</strong> You are about to delete this webhook. This action cannot be undone.
+            </p>
+        </div>
+
+        <div style="background: var(--bg-darker); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+            <p style="margin: 0 0 0.5rem 0; color: var(--text-muted);">Webhook Details:</p>
+            <p style="margin: 0.5rem 0;"><strong>URL:</strong> {{ object.url }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Event:</strong> {{ object.get_event_type_display }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Status:</strong> {% if object.active %}Active{% else %}Inactive{% endif %}</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-danger">Yes, Delete Webhook</button>
+                <a href="{% url 'importer:webhook_list' %}" class="btn btn-primary" style="background: var(--text-muted);">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

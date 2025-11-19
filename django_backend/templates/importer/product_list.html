@@ -1,0 +1,180 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Products - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Products</h1>
+        <p>Manage your products</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Search by SKU</label>
+                <input type="text" name="sku" class="form-control" placeholder="e.g., SKU001" value="{{ sku_filter }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Search by Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g., Product Name" value="{{ name_filter }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status</label>
+                <select name="active" class="form-control">
+                    <option value="">All</option>
+                    <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active</option>
+                    <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'importer:product_list' %}" class="btn btn-primary">Clear</a>
+        </form>
+    </div>
+
+    <!-- Actions -->
+    <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+        <a href="{% url 'importer:product_create' %}" class="btn btn-primary">+ Add Product</a>
+        {% if products %}
+            <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">🗑️ Delete All Products</button>
+        {% endif %}
+    </div>
+
+    <!-- Products Table -->
+    <div class="card">
+        {% if products %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td><strong>{{ product.sku }}</strong></td>
+                            <td>{{ product.name }}</td>
+                            <td>${{ product.price|floatformat:2 }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>
+                                <span class="badge {% if product.active %}badge-success{% else %}badge-danger{% endif %}">
+                                    {% if product.active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'importer:product_edit' product.id %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Edit</a>
+                                <a href="{% url 'importer:product_delete' product.id %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Previous</a>
+                    {% endif %}
+
+                    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Last</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No products found. <a href="{% url 'importer:product_create' %}">Create one</a></p>
+        {% endif %}
+    </div>
+
+    <!-- Bulk Delete Modal -->
+    <div id="bulkDeleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 0.5rem; padding: 2rem; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h2 style="margin-top: 0; color: var(--danger);">⚠️ Delete All Products?</h2>
+            <p style="color: var(--text-muted); line-height: 1.6;">
+                This action will permanently delete <strong id="productCount">0</strong> products from the database. 
+                <strong>This cannot be undone.</strong>
+            </p>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0; color: var(--danger); font-size: 0.875rem;">
+                    ⚠️ All products will be permanently removed.
+                </p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-danger" onclick="executeBulkDelete()" id="confirmBtn">
+                    Yes, Delete All Products
+                </button>
+                <button type="button" class="btn btn-primary" style="background: var(--text-muted);" onclick="closeBulkDeleteModal()">
+                    Cancel
+                </button>
+            </div>
+            <p id="deleteStatus" style="margin-top: 1rem; text-align: center; color: var(--text-muted); display: none;"></p>
+        </div>
+    </div>
+
+    <script>
+        function confirmBulkDelete() {
+            const productCount = document.querySelectorAll('tbody tr').length;
+            document.getElementById('productCount').textContent = productCount;
+            document.getElementById('bulkDeleteModal').style.display = 'flex';
+        }
+
+        function closeBulkDeleteModal() {
+            document.getElementById('bulkDeleteModal').style.display = 'none';
+            document.getElementById('deleteStatus').style.display = 'none';
+            document.getElementById('confirmBtn').disabled = false;
+            document.getElementById('confirmBtn').textContent = 'Yes, Delete All Products';
+        }
+
+        async function executeBulkDelete() {
+            const confirmBtn = document.getElementById('confirmBtn');
+            const deleteStatus = document.getElementById('deleteStatus');
+            
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            deleteStatus.style.display = 'block';
+            deleteStatus.textContent = 'Processing...';
+            deleteStatus.style.color = 'var(--text-muted)';
+
+            try {
+                const response = await fetch('/api/products/delete_all/', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    deleteStatus.textContent = '✓ ' + data.message;
+                    deleteStatus.style.color = 'var(--success)';
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    const error = await response.json();
+                    deleteStatus.textContent = '✗ Error: ' + (error.detail || 'Failed to delete products');
+                    deleteStatus.style.color = 'var(--danger)';
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Yes, Delete All Products';
+                }
+            } catch (error) {
+                deleteStatus.textContent = '✗ Error: ' + error.message;
+                deleteStatus.style.color = 'var(--danger)';
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Yes, Delete All Products';
+            }
+        }
+    </script>
+{% endblock %}

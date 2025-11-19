@@ -1,0 +1,140 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Import CSV - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Import Products</h1>
+        <p>Upload a CSV file to import products</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="card">
+        <h2 style="margin-top: 0;">Upload CSV File</h2>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Select CSV File</label>
+                <input type="file" name="file" accept=".csv" class="form-control" required>
+                <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                    Maximum file size: 500 MB. Required columns: sku, name. Optional: description, price, quantity
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Upload & Import</button>
+        </form>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" style="display: none; margin-top: 2rem;">
+            <p>Importing... <span id="progressPercent">0</span>%</p>
+            <div style="background: var(--bg-darker); border-radius: 0.5rem; height: 8px; overflow: hidden;">
+                <div id="progressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+            <p id="progressStatus" style="color: var(--text-muted); margin-top: 1rem;">Starting import...</p>
+        </div>
+    </div>
+
+    <!-- CSV Format Example -->
+    <div class="card">
+        <h2 style="margin-top: 0;">CSV Format</h2>
+        <p>Your CSV file should have the following format:</p>
+        <pre style="background: var(--bg-darker); padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">sku,name,description,price,quantity
+SKU001,Product 1,Description 1,29.99,100
+SKU002,Product 2,Description 2,39.99,50
+SKU003,Product 3,Description 3,49.99,75</pre>
+    </div>
+
+    <!-- Recent Imports -->
+    {% if recent_imports %}
+        <div class="card">
+            <h2 style="margin-top: 0;">Recent Imports</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for import_job in recent_imports %}
+                        <tr>
+                            <td>{{ import_job.filename }}</td>
+                            <td>
+                                <span class="badge {% if import_job.status == 'completed' %}badge-success{% elif import_job.status == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+                                    {{ import_job.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ import_job.created_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+
+            progressContainer.style.display = 'block';
+
+            try {
+                // Upload file
+                const uploadResponse = await fetch('{% url "importer:import" %}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    alert('Error: ' + uploadData.error);
+                    progressContainer.style.display = 'none';
+                    return;
+                }
+
+                const jobId = uploadData.job_id;
+
+                // Poll for progress
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const progressResponse = await fetch(`/api/import/progress/${jobId}/`);
+                        const progressData = await progressResponse.json();
+
+                        const percent = Math.round((progressData.processed / progressData.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressPercent.textContent = percent;
+                        progressStatus.textContent = `Processed: ${progressData.processed} / ${progressData.total}`;
+
+                        if (progressData.status === 'completed') {
+                            clearInterval(pollInterval);
+                            progressStatus.textContent = '✓ Import completed successfully!';
+                            progressStatus.style.color = 'var(--success)';
+                            setTimeout(() => {
+                                window.location.href = '{% url "importer:product_list" %}';
+                            }, 2000);
+                        } else if (progressData.status === 'failed') {
+                            clearInterval(pollInterval);
+                            progressStatus.textContent = '✗ Import failed: ' + progressData.error;
+                            progressStatus.style.color = 'var(--danger)';
+                        }
+                    } catch (error) {
+                        console.error('Error polling progress:', error);
+                    }
+                }, 1000);
+
+            } catch (error) {
+                alert('Error uploading file: ' + error.message);
+                progressContainer.style.display = 'none';
+            }
+        });
+    </script>
+{% endblock %}

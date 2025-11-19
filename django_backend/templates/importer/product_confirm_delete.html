@@ -1,0 +1,32 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Delete Product - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Delete Product</h1>
+    </div>
+
+    <div class="card" style="max-width: 500px;">
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem;">
+            <p style="margin: 0; color: var(--danger);">
+                <strong>⚠️ Warning:</strong> You are about to delete this product. This action cannot be undone.
+            </p>
+        </div>
+
+        <div style="background: var(--bg-darker); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+            <p style="margin: 0 0 0.5rem 0; color: var(--text-muted);">Product Details:</p>
+            <p style="margin: 0.5rem 0;"><strong>SKU:</strong> {{ object.sku }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Name:</strong> {{ object.name }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Price:</strong> ${{ object.price|floatformat:2 }}</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-danger">Yes, Delete Product</button>
+                <a href="{% url 'importer:product_list' %}" class="btn btn-primary" style="background: var(--text-muted);">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

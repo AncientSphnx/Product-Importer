@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: product-importer-django
+    runtime: python
+    plan: free
+    buildCommand: pip install -r django_backend/requirements.txt && cd django_backend && python manage.py migrate && python manage.py collectstatic --noinput
+    startCommand: cd django_backend && gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        scope: service
+        value: ${DATABASE_URL}
+      - key: CELERY_BROKER_URL
+        scope: service
+        value: ${CELERY_BROKER_URL}
+      - key: CELERY_RESULT_BACKEND
+        scope: service
+        value: ${CELERY_RESULT_BACKEND}
+      - key: DEBUG
+        scope: service
+        value: "False"
+      - key: SECRET_KEY
+        scope: service
+        value: ${SECRET_KEY}
+      - key: ALLOWED_HOSTS
+        scope: service
+        value: "*.onrender.com,localhost,127.0.0.1"
+
+  - type: background_worker
+    name: product-importer-celery-worker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r django_backend/requirements.txt
+    startCommand: cd django_backend && celery -A config worker --loglevel=info
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        scope: service
+        value: ${DATABASE_URL}
+      - key: CELERY_BROKER_URL
+        scope: service
+        value: ${CELERY_BROKER_URL}
+      - key: CELERY_RESULT_BACKEND
+        scope: service
+        value: ${CELERY_RESULT_BACKEND}

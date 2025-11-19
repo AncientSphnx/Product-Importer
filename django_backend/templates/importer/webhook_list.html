@@ -1,0 +1,61 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Webhooks - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Webhooks</h1>
+        <p>Configure and manage webhooks</p>
+    </div>
+
+    <!-- Actions -->
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{% url 'importer:webhook_create' %}" class="btn btn-primary">+ Add Webhook</a>
+    </div>
+
+    <!-- Webhooks -->
+    <div class="card">
+        {% if webhooks %}
+            {% for webhook in webhooks %}
+                <div style="border-bottom: 1px solid var(--border); padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 0.5rem 0;">{{ webhook.url }}</h3>
+                        <p style="margin: 0.5rem 0; color: var(--text-muted);">
+                            <strong>Event:</strong> {{ webhook.get_event_type_display }}
+                        </p>
+                        <p style="margin: 0.5rem 0;">
+                            <span class="badge {% if webhook.active %}badge-success{% else %}badge-danger{% endif %}">
+                                {% if webhook.active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </p>
+
+                        <!-- Recent Logs -->
+                        {% if webhook.recent_logs %}
+                            <div style="margin-top: 1rem; background: var(--bg-darker); padding: 1rem; border-radius: 0.5rem;">
+                                <p style="margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.875rem;">Recent Deliveries:</p>
+                                {% for log in webhook.recent_logs %}
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                        <span style="font-size: 0.875rem;">
+                                            <span class="badge {% if log.status_code == 200 %}badge-success{% else %}badge-danger{% endif %}">
+                                                {{ log.status_code }}
+                                            </span>
+                                            {{ log.created_at|date:"H:i:s" }}
+                                        </span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ log.response_time }}ms</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                        <a href="{% url 'importer:webhook_edit' webhook.id %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Edit</a>
+                        <a href="{% url 'importer:webhook_delete' webhook.id %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Delete</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No webhooks configured. <a href="{% url 'importer:webhook_create' %}">Create one</a></p>
+        {% endif %}
+    </div>
+{% endblock %}

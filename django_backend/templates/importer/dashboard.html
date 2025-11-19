@@ -1,0 +1,96 @@
+{% extends "importer/base.html" %}
+
+{% block title %}Dashboard - Product Importer{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Dashboard</h1>
+        <p>Welcome to Product Importer</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Total Products Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Products</p>
+                    <h2 style="font-size: 2rem; margin: 0;">{{ total_products }}</h2>
+                </div>
+                <div style="font-size: 3rem; opacity: 0.2;">📦</div>
+            </div>
+        </div>
+
+        <!-- Active Products Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Active Products</p>
+                    <h2 style="font-size: 2rem; margin: 0; color: var(--success);">{{ active_products }}</h2>
+                </div>
+                <div style="font-size: 3rem; opacity: 0.2;">✓</div>
+            </div>
+        </div>
+
+        <!-- Inactive Products Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Inactive Products</p>
+                    <h2 style="font-size: 2rem; margin: 0; color: var(--warning);">{{ inactive_products }}</h2>
+                </div>
+                <div style="font-size: 3rem; opacity: 0.2;">✕</div>
+            </div>
+        </div>
+
+        <!-- Total Webhooks Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Webhooks</p>
+                    <h2 style="font-size: 2rem; margin: 0; color: var(--primary);">{{ total_webhooks }}</h2>
+                </div>
+                <div style="font-size: 3rem; opacity: 0.2;">🔗</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <h2 style="margin-top: 0;">Quick Actions</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{% url 'importer:product_create' %}" class="btn btn-primary">+ Add Product</a>
+            <a href="{% url 'importer:import' %}" class="btn btn-primary">📤 Import CSV</a>
+            <a href="{% url 'importer:webhook_create' %}" class="btn btn-primary">🔗 Add Webhook</a>
+            <a href="{% url 'importer:product_list' %}" class="btn btn-primary">📋 View Products</a>
+        </div>
+    </div>
+
+    <!-- Recent Imports -->
+    {% if recent_imports %}
+        <div class="card">
+            <h2 style="margin-top: 0;">Recent Imports</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for import_job in recent_imports %}
+                        <tr>
+                            <td>{{ import_job.filename }}</td>
+                            <td>
+                                <span class="badge {% if import_job.status == 'completed' %}badge-success{% else %}badge-danger{% endif %}">
+                                    {{ import_job.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ import_job.created_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
