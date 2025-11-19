@@ -2,67 +2,214 @@
 
 {% block title %}Import CSV - Product Importer{% endblock %}
 
+{% block extra_css %}
+<style>
+    .upload-zone {
+        border: 2px dashed var(--primary);
+        border-radius: 1rem;
+        padding: 3rem;
+        text-align: center;
+        background: rgba(99, 102, 241, 0.05);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: var(--secondary);
+    }
+
+    .upload-zone i {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .upload-zone p {
+        margin: 0.5rem 0;
+        color: var(--text-muted);
+    }
+
+    .progress-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(99, 102, 241, 0.05);
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+    }
+
+    .progress-bar-container {
+        background: var(--bg-darker);
+        border-radius: 0.75rem;
+        height: 12px;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .code-block {
+        background: var(--bg-darker);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .format-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .format-item {
+        padding: 1rem;
+        background: rgba(99, 102, 241, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+    }
+
+    .format-item strong {
+        color: var(--primary);
+    }
+
+    .format-item span {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <div class="header">
-        <h1>Import Products</h1>
-        <p>Upload a CSV file to import products</p>
+        <h1><i class="fas fa-file-upload"></i> Import Products</h1>
+        <p>Upload a CSV file to import or update your products</p>
     </div>
 
     <!-- Upload Form -->
     <div class="card">
-        <h2 style="margin-top: 0;">Upload CSV File</h2>
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-cloud-upload-alt"></i> Upload CSV File</h2>
         <form method="post" enctype="multipart/form-data" id="uploadForm">
             {% csrf_token %}
 
             <div class="form-group">
-                <label class="form-label">Select CSV File</label>
-                <input type="file" name="file" accept=".csv" class="form-control" required>
-                <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
-                    Maximum file size: 500 MB. Required columns: sku, name. Optional: description, price, quantity
+                <div class="upload-zone" id="uploadZone">
+                    <i class="fas fa-file-csv"></i>
+                    <p style="font-weight: 600; font-size: 1.1rem;">Click to upload or drag and drop</p>
+                    <p>CSV files up to 500 MB</p>
+                    <input type="file" name="file" accept=".csv" id="fileInput" style="display: none;" required>
+                </div>
+                <small style="color: var(--text-muted); display: block; margin-top: 1rem; text-align: center;">
+                    <i class="fas fa-info-circle"></i>
+                    Required columns: <strong>sku</strong>, <strong>name</strong> | Optional: description, price, quantity
                 </small>
             </div>
 
-            <button type="submit" class="btn btn-primary">Upload & Import</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                <i class="fas fa-play"></i> Start Import
+            </button>
         </form>
 
-        <!-- Progress Bar -->
-        <div id="progressContainer" style="display: none; margin-top: 2rem;">
-            <p>Importing... <span id="progressPercent">0</span>%</p>
-            <div style="background: var(--bg-darker); border-radius: 0.5rem; height: 8px; overflow: hidden;">
-                <div id="progressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+        <!-- Progress Section -->
+        <div id="progressContainer" style="display: none;">
+            <div class="progress-section">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <i class="fas fa-spinner fa-spin" style="color: var(--primary);"></i>
+                    <span style="font-weight: 600;">Importing products...</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="progressStatus" style="color: var(--text-muted);">Starting import...</span>
+                    <span id="progressPercent" style="font-weight: 600; color: var(--primary);">0%</span>
+                </div>
             </div>
-            <p id="progressStatus" style="color: var(--text-muted); margin-top: 1rem;">Starting import...</p>
         </div>
     </div>
 
-    <!-- CSV Format Example -->
+    <!-- CSV Format Guide -->
     <div class="card">
-        <h2 style="margin-top: 0;">CSV Format</h2>
-        <p>Your CSV file should have the following format:</p>
-        <pre style="background: var(--bg-darker); padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">sku,name,description,price,quantity
-SKU001,Product 1,Description 1,29.99,100
-SKU002,Product 2,Description 2,39.99,50
-SKU003,Product 3,Description 3,49.99,75</pre>
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-book"></i> CSV Format Guide</h2>
+        <p style="margin-bottom: 1rem;">Your CSV file should have the following format:</p>
+        <div class="code-block">sku,name,description,price,quantity
+SKU001,Wireless Headphones,High-quality Bluetooth headphones,79.99,150
+SKU002,USB-C Cable,Durable 2-meter charging cable,12.99,500
+SKU003,Phone Case,Protective case with shock absorption,24.99,300</div>
+        
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem;"><i class="fas fa-columns"></i> Column Details</h3>
+        <div class="format-grid">
+            <div class="format-item">
+                <strong>sku</strong>
+                <span>Product SKU (Required, Unique)</span>
+            </div>
+            <div class="format-item">
+                <strong>name</strong>
+                <span>Product Name (Required)</span>
+            </div>
+            <div class="format-item">
+                <strong>description</strong>
+                <span>Product Description (Optional)</span>
+            </div>
+            <div class="format-item">
+                <strong>price</strong>
+                <span>Product Price (Optional)</span>
+            </div>
+            <div class="format-item">
+                <strong>quantity</strong>
+                <span>Stock Quantity (Optional)</span>
+            </div>
+        </div>
     </div>
 
     <!-- Recent Imports -->
     {% if recent_imports %}
         <div class="card">
-            <h2 style="margin-top: 0;">Recent Imports</h2>
+            <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-history"></i> Recent Imports</h2>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Filename</th>
-                        <th>Status</th>
-                        <th>Created</th>
+                        <th><i class="fas fa-file"></i> Filename</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th><i class="fas fa-calendar"></i> Created</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for import_job in recent_imports %}
                         <tr>
-                            <td>{{ import_job.filename }}</td>
+                            <td>
+                                <i class="fas fa-file-csv"></i>
+                                {{ import_job.filename }}
+                            </td>
                             <td>
                                 <span class="badge {% if import_job.status == 'completed' %}badge-success{% elif import_job.status == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+                                    {% if import_job.status == 'completed' %}
+                                        <i class="fas fa-check"></i>
+                                    {% elif import_job.status == 'failed' %}
+                                        <i class="fas fa-times"></i>
+                                    {% else %}
+                                        <i class="fas fa-hourglass-half"></i>
+                                    {% endif %}
                                     {{ import_job.get_status_display }}
                                 </span>
                             </td>

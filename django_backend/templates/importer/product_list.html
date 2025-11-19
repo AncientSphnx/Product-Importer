@@ -2,56 +2,179 @@
 
 {% block title %}Products - Product Importer{% endblock %}
 
+{% block extra_css %}
+<style>
+    .filter-card {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .filter-card .form-group {
+        margin-bottom: 0;
+    }
+
+    .actions-bar {
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--primary);
+        opacity: 0.3;
+        display: block;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg-card);
+        border-radius: 1rem;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header i {
+        font-size: 2rem;
+        color: var(--danger);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .modal-body {
+        margin-bottom: 1.5rem;
+        color: var(--text-secondary);
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .modal-footer .btn {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .filter-card {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-bar {
+            flex-direction: column;
+        }
+
+        .actions-bar .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <div class="header">
-        <h1>Products</h1>
-        <p>Manage your products</p>
+        <h1><i class="fas fa-list"></i> Products</h1>
+        <p>Manage and organize your product inventory</p>
     </div>
 
     <!-- Filters -->
     <div class="card">
-        <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Search by SKU</label>
+        <h3 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-filter"></i> Filters</h3>
+        <form method="get" class="filter-card">
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-barcode"></i> Search by SKU</label>
                 <input type="text" name="sku" class="form-control" placeholder="e.g., SKU001" value="{{ sku_filter }}">
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Search by Name</label>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-tag"></i> Search by Name</label>
                 <input type="text" name="name" class="form-control" placeholder="e.g., Product Name" value="{{ name_filter }}">
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Status</label>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-toggle-on"></i> Status</label>
                 <select name="active" class="form-control">
                     <option value="">All</option>
                     <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active</option>
                     <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'importer:product_list' %}" class="btn btn-primary">Clear</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Filter
+            </button>
+            <a href="{% url 'importer:product_list' %}" class="btn btn-secondary">
+                <i class="fas fa-redo"></i> Clear
+            </a>
         </form>
     </div>
 
     <!-- Actions -->
-    <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
-        <a href="{% url 'importer:product_create' %}" class="btn btn-primary">+ Add Product</a>
+    <div class="actions-bar">
+        <a href="{% url 'importer:product_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Product
+        </a>
         {% if products %}
-            <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">🗑️ Delete All Products</button>
+            <button type="button" class="btn btn-danger" onclick="openBulkDeleteModal()">
+                <i class="fas fa-trash-alt"></i> Delete All Products
+            </button>
         {% endif %}
     </div>
 
     <!-- Products Table -->
     <div class="card">
         {% if products %}
+            <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-table"></i> Product List</h2>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>SKU</th>
-                        <th>Name</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th><i class="fas fa-barcode"></i> SKU</th>
+                        <th><i class="fas fa-tag"></i> Name</th>
+                        <th><i class="fas fa-dollar-sign"></i> Price</th>
+                        <th><i class="fas fa-cubes"></i> Quantity</th>
+                        <th><i class="fas fa-toggle-on"></i> Status</th>
+                        <th><i class="fas fa-cog"></i> Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,12 +186,20 @@
                             <td>{{ product.quantity }}</td>
                             <td>
                                 <span class="badge {% if product.active %}badge-success{% else %}badge-danger{% endif %}">
-                                    {% if product.active %}Active{% else %}Inactive{% endif %}
+                                    {% if product.active %}
+                                        <i class="fas fa-check"></i> Active
+                                    {% else %}
+                                        <i class="fas fa-times"></i> Inactive
+                                    {% endif %}
                                 </span>
                             </td>
                             <td>
-                                <a href="{% url 'importer:product_edit' product.id %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Edit</a>
-                                <a href="{% url 'importer:product_delete' product.id %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Delete</a>
+                                <a href="{% url 'importer:product_edit' product.id %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'importer:product_delete' product.id %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -79,42 +210,54 @@
             {% if is_paginated %}
                 <div class="pagination">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">First</a>
-                        <a href="?page={{ page_obj.previous_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Previous</a>
+                        <a href="?page=1{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i> First
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
                     {% endif %}
 
-                    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <span style="padding: 0.75rem 1rem; background: var(--primary); border-radius: 0.5rem; color: white; font-weight: 600;">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">Last</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if sku_filter %}&sku={{ sku_filter }}{% endif %}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if active_filter %}&active={{ active_filter }}{% endif %}">
+                            Last <i class="fas fa-chevron-right"></i>
+                        </a>
                     {% endif %}
                 </div>
             {% endif %}
         {% else %}
-            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No products found. <a href="{% url 'importer:product_create' %}">Create one</a></p>
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p style="font-size: 1.1rem; font-weight: 600;">No products found</p>
+                <p>Start by <a href="{% url 'importer:product_create' %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">creating a product</a> or <a href="{% url 'importer:import' %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">importing a CSV file</a></p>
+            </div>
         {% endif %}
     </div>
 
     <!-- Bulk Delete Modal -->
-    <div id="bulkDeleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 0.5rem; padding: 2rem; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h2 style="margin-top: 0; color: var(--danger);">⚠️ Delete All Products?</h2>
-            <p style="color: var(--text-muted); line-height: 1.6;">
-                This action will permanently delete <strong id="productCount">0</strong> products from the database. 
-                <strong>This cannot be undone.</strong>
-            </p>
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
-                <p style="margin: 0; color: var(--danger); font-size: 0.875rem;">
-                    ⚠️ All products will be permanently removed.
-                </p>
+    <div id="bulkDeleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>Delete All Products?</h2>
             </div>
-            <div style="display: flex; gap: 1rem;">
-                <button type="button" class="btn btn-danger" onclick="executeBulkDelete()" id="confirmBtn">
-                    Yes, Delete All Products
+            <div class="modal-body">
+                <p>This action will permanently delete <strong id="productCount">0</strong> products from the database.</p>
+                <p style="color: var(--danger); font-weight: 600;">⚠️ This cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeBulkDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-primary" style="background: var(--text-muted);" onclick="closeBulkDeleteModal()">
-                    Cancel
+                <button type="button" class="btn btn-danger" onclick="executeBulkDelete()" id="confirmBtn">
+                    <i class="fas fa-trash"></i> Delete All
                 </button>
             </div>
             <p id="deleteStatus" style="margin-top: 1rem; text-align: center; color: var(--text-muted); display: none;"></p>
@@ -122,25 +265,32 @@
     </div>
 
     <script>
-        function confirmBulkDelete() {
+        function openBulkDeleteModal() {
             const productCount = document.querySelectorAll('tbody tr').length;
             document.getElementById('productCount').textContent = productCount;
-            document.getElementById('bulkDeleteModal').style.display = 'flex';
+            document.getElementById('bulkDeleteModal').classList.add('active');
         }
 
         function closeBulkDeleteModal() {
-            document.getElementById('bulkDeleteModal').style.display = 'none';
+            document.getElementById('bulkDeleteModal').classList.remove('active');
             document.getElementById('deleteStatus').style.display = 'none';
             document.getElementById('confirmBtn').disabled = false;
-            document.getElementById('confirmBtn').textContent = 'Yes, Delete All Products';
+            document.getElementById('confirmBtn').innerHTML = '<i class="fas fa-trash"></i> Delete All';
         }
+
+        // Close modal when clicking outside
+        document.getElementById('bulkDeleteModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBulkDeleteModal();
+            }
+        });
 
         async function executeBulkDelete() {
             const confirmBtn = document.getElementById('confirmBtn');
             const deleteStatus = document.getElementById('deleteStatus');
             
             confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Deleting...';
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
             deleteStatus.style.display = 'block';
             deleteStatus.textContent = 'Processing...';
             deleteStatus.style.color = 'var(--text-muted)';
@@ -156,7 +306,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    deleteStatus.textContent = '✓ ' + data.message;
+                    deleteStatus.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
                     deleteStatus.style.color = 'var(--success)';
                     
                     setTimeout(() => {
@@ -164,16 +314,16 @@
                     }, 1500);
                 } else {
                     const error = await response.json();
-                    deleteStatus.textContent = '✗ Error: ' + (error.detail || 'Failed to delete products');
+                    deleteStatus.innerHTML = '<i class="fas fa-times-circle"></i> Error: ' + (error.detail || 'Failed to delete products');
                     deleteStatus.style.color = 'var(--danger)';
                     confirmBtn.disabled = false;
-                    confirmBtn.textContent = 'Yes, Delete All Products';
+                    confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Delete All';
                 }
             } catch (error) {
-                deleteStatus.textContent = '✗ Error: ' + error.message;
+                deleteStatus.innerHTML = '<i class="fas fa-times-circle"></i> Error: ' + error.message;
                 deleteStatus.style.color = 'var(--danger)';
                 confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Yes, Delete All Products';
+                confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Delete All';
             }
         }
     </script>

@@ -2,87 +2,201 @@
 
 {% block title %}Dashboard - Product Importer{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .stat-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .stat-content h3 {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-content h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-icon {
+        font-size: 4rem;
+        opacity: 0.15;
+    }
+
+    .stat-card.success .stat-content h2 {
+        color: var(--success);
+    }
+
+    .stat-card.warning .stat-content h2 {
+        color: var(--warning);
+    }
+
+    .stat-card.primary .stat-content h2 {
+        color: var(--primary);
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-btn {
+        padding: 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 0.75rem;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .action-btn i {
+        font-size: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .stat-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .stat-icon {
+            margin-top: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <div class="header">
-        <h1>Dashboard</h1>
-        <p>Welcome to Product Importer</p>
+        <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+        <p>Welcome to your Product Importer dashboard</p>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
         <!-- Total Products Card -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Products</p>
-                    <h2 style="font-size: 2rem; margin: 0;">{{ total_products }}</h2>
-                </div>
-                <div style="font-size: 3rem; opacity: 0.2;">📦</div>
+        <div class="stat-card primary">
+            <div class="stat-content">
+                <h3>Total Products</h3>
+                <h2>{{ total_products }}</h2>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-boxes"></i>
             </div>
         </div>
 
         <!-- Active Products Card -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Active Products</p>
-                    <h2 style="font-size: 2rem; margin: 0; color: var(--success);">{{ active_products }}</h2>
-                </div>
-                <div style="font-size: 3rem; opacity: 0.2;">✓</div>
+        <div class="stat-card success">
+            <div class="stat-content">
+                <h3>Active Products</h3>
+                <h2>{{ active_products }}</h2>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
             </div>
         </div>
 
         <!-- Inactive Products Card -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Inactive Products</p>
-                    <h2 style="font-size: 2rem; margin: 0; color: var(--warning);">{{ inactive_products }}</h2>
-                </div>
-                <div style="font-size: 3rem; opacity: 0.2;">✕</div>
+        <div class="stat-card warning">
+            <div class="stat-content">
+                <h3>Inactive Products</h3>
+                <h2>{{ inactive_products }}</h2>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
             </div>
         </div>
 
         <!-- Total Webhooks Card -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Webhooks</p>
-                    <h2 style="font-size: 2rem; margin: 0; color: var(--primary);">{{ total_webhooks }}</h2>
-                </div>
-                <div style="font-size: 3rem; opacity: 0.2;">🔗</div>
+        <div class="stat-card primary">
+            <div class="stat-content">
+                <h3>Webhooks</h3>
+                <h2>{{ total_webhooks }}</h2>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-webhook"></i>
             </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
     <div class="card">
-        <h2 style="margin-top: 0;">Quick Actions</h2>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="{% url 'importer:product_create' %}" class="btn btn-primary">+ Add Product</a>
-            <a href="{% url 'importer:import' %}" class="btn btn-primary">📤 Import CSV</a>
-            <a href="{% url 'importer:webhook_create' %}" class="btn btn-primary">🔗 Add Webhook</a>
-            <a href="{% url 'importer:product_list' %}" class="btn btn-primary">📋 View Products</a>
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-lightning-bolt"></i> Quick Actions</h2>
+        <div class="actions-grid">
+            <a href="{% url 'importer:product_create' %}" class="btn btn-primary action-btn">
+                <i class="fas fa-plus"></i>
+                <span>Add Product</span>
+            </a>
+            <a href="{% url 'importer:import' %}" class="btn btn-primary action-btn">
+                <i class="fas fa-file-upload"></i>
+                <span>Import CSV</span>
+            </a>
+            <a href="{% url 'importer:webhook_create' %}" class="btn btn-primary action-btn">
+                <i class="fas fa-link"></i>
+                <span>Add Webhook</span>
+            </a>
+            <a href="{% url 'importer:product_list' %}" class="btn btn-primary action-btn">
+                <i class="fas fa-list"></i>
+                <span>View Products</span>
+            </a>
         </div>
     </div>
 
     <!-- Recent Imports -->
     {% if recent_imports %}
         <div class="card">
-            <h2 style="margin-top: 0;">Recent Imports</h2>
+            <h2 style="margin-top: 0; margin-bottom: 1.5rem;"><i class="fas fa-history"></i> Recent Imports</h2>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Filename</th>
-                        <th>Status</th>
-                        <th>Created</th>
+                        <th><i class="fas fa-file"></i> Filename</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th><i class="fas fa-calendar"></i> Created</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for import_job in recent_imports %}
                         <tr>
-                            <td>{{ import_job.filename }}</td>
+                            <td>
+                                <i class="fas fa-file-csv"></i>
+                                {{ import_job.filename }}
+                            </td>
                             <td>
                                 <span class="badge {% if import_job.status == 'completed' %}badge-success{% else %}badge-danger{% endif %}">
+                                    {% if import_job.status == 'completed' %}
+                                        <i class="fas fa-check"></i>
+                                    {% else %}
+                                        <i class="fas fa-times"></i>
+                                    {% endif %}
                                     {{ import_job.get_status_display }}
                                 </span>
                             </td>
