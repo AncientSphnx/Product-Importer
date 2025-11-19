@@ -1,0 +1,20 @@
+Prompt:
+Help me design the architecture for a Python-based product importer app that can handle a CSV with 500,000 rows. I need file upload, async processing with Celery, progress tracking, and CRUD UI. Recommend the best folder structure, database schema, and how to track progress.
+
+AI Output:
+- Use FastAPI or Flask for backend
+- Use SQLAlchemy ORM + PostgreSQL
+- Use Redis as Celery backend for fast progress updates
+- Store upload file temporarily and pass file path to Celery worker
+- Use chunked CSV reading (10,000 rows at a time) to avoid memory spikes
+- Track progress using Redis keys import:<task_id>:processed and import:<task_id>:total
+- CRUD operations can be simple REST endpoints
+- Webhooks stored in separate table
+- Suggested folder structure:
+/app
+  /api
+  /models
+  /workers
+  /services
+  /static
+  main.py
