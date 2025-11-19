@@ -142,40 +142,44 @@ class ImportView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         """Handle file upload."""
-        form = CSVUploadForm(request.POST, request.FILES)
+        # Check if file is in request
+        if 'file' not in request.FILES:
+            logger.error("No file in request.FILES")
+            return JsonResponse({'error': 'No file provided'}, status=400)
         
-        if form.is_valid():
-            file = form.cleaned_data['file']
-            
-            if not file.name.endswith('.csv'):
-                return JsonResponse({'error': 'File must be CSV'}, status=400)
-
-            if file.size > 500 * 1024 * 1024:
-                return JsonResponse({'error': 'File too large'}, status=400)
-
-            try:
-                job_id = str(uuid.uuid4())
-                job = ImportJob.objects.create(
-                    id=job_id,
-                    filename=file.name,
-                    status='pending'
-                )
-
-                content = file.read()
-                task = import_csv_task.delay(content, file.name, job_id)
-
-                return JsonResponse({
-                    'job_id': job_id,
-                    'task_id': task.id,
-                    'status': 'pending',
-                    'message': 'Import started'
-                })
-
-            except Exception as e:
-                logger.error(f"Error uploading file: {str(e)}")
-                return JsonResponse({'error': str(e)}, status=400)
+        file = request.FILES['file']
         
-        return JsonResponse({'error': 'Invalid form'}, status=400)
+        # Validate file
+        if not file.name.endswith('.csv'):
+            logger.error(f"Invalid file type: {file.name}")
+            return JsonResponse({'error': 'File must be CSV'}, status=400)
+
+        if file.size > 500 * 1024 * 1024:
+            logger.error(f"File too large: {file.size} bytes")
+            return JsonResponse({'error': 'File too large (max 500MB)'}, status=400)
+
+        try:
+            job_id = str(uuid.uuid4())
+            job = ImportJob.objects.create(
+                id=job_id,
+                filename=file.name,
+                status='pending'
+            )
+
+            content = file.read()
+            task = import_csv_task.delay(content, file.name, job_id)
+
+            logger.info(f"Import job created: {job_id}")
+            return JsonResponse({
+                'job_id': job_id,
+                'task_id': task.id,
+                'status': 'pending',
+                'message': 'Import started'
+            })
+
+        except Exception as e:
+            logger.error(f"Error uploading file: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
 
 
 class WebhookListView(ListView):

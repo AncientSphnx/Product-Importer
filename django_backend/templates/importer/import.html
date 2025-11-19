@@ -222,33 +222,93 @@ SKU003,Phone Case,Protective case with shock absorption,24.99,300</div>
     {% endif %}
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // Click to upload
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                uploadZone.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i><p style="font-weight: 600;">${fileName}</p><p style="color: var(--success);">Ready to import</p>`;
+                submitBtn.style.display = 'inline-block';
+            }
+        });
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        });
+
+        // Form submission
+        uploadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const formData = new FormData(this);
+            if (!fileInput.files.length) {
+                alert('Please select a CSV file');
+                return;
+            }
+
+            // Create FormData and explicitly add file
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressPercent = document.getElementById('progressPercent');
             const progressStatus = document.getElementById('progressStatus');
 
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
             progressContainer.style.display = 'block';
 
             try {
                 // Upload file
+                console.log('Uploading file:', fileInput.files[0].name);
+                console.log('File size:', fileInput.files[0].size, 'bytes');
                 const uploadResponse = await fetch('{% url "importer:import" %}', {
                     method: 'POST',
                     body: formData
                 });
 
+                console.log('Upload response status:', uploadResponse.status);
                 const uploadData = await uploadResponse.json();
+                console.log('Upload response data:', uploadData);
 
                 if (!uploadResponse.ok) {
-                    alert('Error: ' + uploadData.error);
+                    const errorMsg = uploadData.error || uploadData.detail || 'Upload failed';
+                    console.error('Upload error:', errorMsg);
+                    alert('Error: ' + errorMsg);
                     progressContainer.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-play"></i> Start Import';
                     return;
                 }
 
                 const jobId = uploadData.job_id;
+                let lastPercent = 0;
 
                 // Poll for progress
                 const pollInterval = setInterval(async () => {
@@ -256,22 +316,26 @@ SKU003,Phone Case,Protective case with shock absorption,24.99,300</div>
                         const progressResponse = await fetch(`/api/import/progress/${jobId}/`);
                         const progressData = await progressResponse.json();
 
-                        const percent = Math.round((progressData.processed / progressData.total) * 100);
+                        const percent = Math.round((progressData.processed / progressData.total) * 100) || 0;
                         progressBar.style.width = percent + '%';
-                        progressPercent.textContent = percent;
+                        progressPercent.textContent = percent + '%';
                         progressStatus.textContent = `Processed: ${progressData.processed} / ${progressData.total}`;
 
                         if (progressData.status === 'completed') {
                             clearInterval(pollInterval);
-                            progressStatus.textContent = '✓ Import completed successfully!';
+                            progressBar.style.width = '100%';
+                            progressPercent.textContent = '100%';
+                            progressStatus.innerHTML = '<i class="fas fa-check-circle"></i> Import completed successfully!';
                             progressStatus.style.color = 'var(--success)';
                             setTimeout(() => {
                                 window.location.href = '{% url "importer:product_list" %}';
                             }, 2000);
                         } else if (progressData.status === 'failed') {
                             clearInterval(pollInterval);
-                            progressStatus.textContent = '✗ Import failed: ' + progressData.error;
+                            progressStatus.innerHTML = '<i class="fas fa-times-circle"></i> Import failed: ' + (progressData.error || 'Unknown error');
                             progressStatus.style.color = 'var(--danger)';
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fas fa-play"></i> Start Import';
                         }
                     } catch (error) {
                         console.error('Error polling progress:', error);
@@ -281,6 +345,8 @@ SKU003,Phone Case,Protective case with shock absorption,24.99,300</div>
             } catch (error) {
                 alert('Error uploading file: ' + error.message);
                 progressContainer.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-play"></i> Start Import';
             }
         });
     </script>

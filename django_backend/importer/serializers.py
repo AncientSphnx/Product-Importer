@@ -13,10 +13,15 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ImportJobSerializer(serializers.ModelSerializer):
     """Import job serializer."""
+    # Alias fields for frontend compatibility
+    total = serializers.IntegerField(source='total_records', read_only=True)
+    processed = serializers.IntegerField(source='processed_records', read_only=True)
+    
     class Meta:
         model = ImportJob
         fields = ['id', 'filename', 'status', 'total_records', 'processed_records', 
-                  'created_records', 'updated_records', 'error_message', 'created_at', 'updated_at']
+                  'created_records', 'updated_records', 'error_message', 'created_at', 'updated_at',
+                  'total', 'processed']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
