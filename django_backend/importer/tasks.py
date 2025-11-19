@@ -50,8 +50,14 @@ def import_csv_task(self, file_content, filename, job_id):
         # Process in chunks
         chunk_size = 1000
         products_to_create = []
+        rows_list = list(reader)
+        
+        # Get all existing SKUs at once (batch query)
+        existing_skus = set(
+            Product.objects.values_list('sku', flat=True).lower()
+        )
 
-        for row_num, row in enumerate(reader, 1):
+        for row_num, row in enumerate(rows_list, 1):
             try:
                 sku = row.get('sku', '').strip().upper()
                 name = row.get('name', '').strip()
@@ -63,20 +69,20 @@ def import_csv_task(self, file_content, filename, job_id):
                     logger.warning(f"Row {row_num}: Missing SKU or name, skipping")
                     continue
 
-                # Check if product exists (case-insensitive SKU)
-                existing = Product.objects.filter(sku__iexact=sku).first()
-
-                if existing:
+                # Check if product exists (batch check - much faster)
+                if sku.lower() in existing_skus:
                     # Update existing product
-                    existing.name = name
-                    existing.description = description
-                    existing.price = price
-                    existing.quantity = quantity
-                    existing.save()
-                    updated_count += 1
-                    
-                    # Trigger webhook
-                    trigger_webhook.delay('product_updated', {'product_id': str(existing.id), 'sku': existing.sku})
+                    existing = Product.objects.filter(sku__iexact=sku).first()
+                    if existing:
+                        existing.name = name
+                        existing.description = description
+                        existing.price = price
+                        existing.quantity = quantity
+                        existing.save()
+                        updated_count += 1
+                        
+                        # Trigger webhook
+                        trigger_webhook.delay('product_updated', {'product_id': str(existing.id), 'sku': existing.sku})
                 else:
                     # Create new product
                     product = Product(
